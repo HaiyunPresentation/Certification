@@ -7,7 +7,7 @@ import re
 ticket = ''
 
 # 根据给出申请语句向服务器申请票据, 申请语句格式参见 'ult.config' 或'README'
-def requestTicket(strReq):
+def requestTicket(Req):
 	print('Getting Ticket...')
 	sock = socket(AF_INET, SOCK_DGRAM)
 
@@ -16,7 +16,7 @@ def requestTicket(strReq):
 		reqTimes -= 1
 		
 		try:
-			msg = 'HELO:'+strReq
+			msg = 'HELO:'+Req
 			sock.sendto(msg.encode(), ServerIP_Port)
 			info = sock.recv(MSGLEN).decode()
 
@@ -33,11 +33,15 @@ def requestTicket(strReq):
 			continue
 
 	sock.close()
-	if showTicket:
-		return re.match('WELC:.*', info), info
-	else:
-		ticket = info
-		return re.match('WELC:.*', info)
+
+	global ticket
+	ticket = info[5:]
+	return info[:4]=='WELC'
+	# if showTicket:
+	# 	return info[:4]=='WELC', info
+	# else:
+	# 	ticket = info
+	# 	return info[:4]=='WELC'
 
 # 开始工作进程
 def work():
@@ -45,7 +49,7 @@ def work():
     pass
 
 # 向服务器归还票据
-def releaseTicket(ticket):
+def releaseTicket(Req):
 	print('Releas Ticket...')
 	sock = socket(AF_INET, SOCK_DGRAM)
 
@@ -54,7 +58,7 @@ def releaseTicket(ticket):
 		relsTimes -= 1
 
 		try:
-			msg = 'RELS:'+ticket
+			msg = 'RELS:'+Req+'by:'+ticket
 			sock.sendto(msg.encode(), ServerIP_Port)
 			info = sock.recv(MSGLEN).decode()
 			break
@@ -64,7 +68,7 @@ def releaseTicket(ticket):
 			continue
 
 	sock.close()
-	return info == 'THNK'
+	return info[:4] == 'GBYE'
 	# 仅严格返回是否成功向服务器提出归还
 	# 即使归还失败也仍然退出
 	# 由服务器超时自动收回票据

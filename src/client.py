@@ -1,10 +1,14 @@
 from ult.ClientAct import *
 
 if __name__ == "__main__":
-	if showTicket:
-		beTicket, ticket = requestTicket(KeyFormat)
-	else:
-		beTicket = requestTicket(KeyFormat)
+	Req = 'foaughifoi'
+	
+	# 是否将ticket 封装, 由'utl.config' 决定
+	# if showTicket:
+		# beTicket, ticket = requestTicket(Req)
+	# else:
+		# beTicket = requestTicket(Req)
+	beTicket = requestTicket(Req)
 
 	if beTicket:
 		print('now start Working...')
@@ -16,7 +20,7 @@ if __name__ == "__main__":
 		print('Could not get ticket')
 		exit(0)
 
-	if releaseTicket(ticket):
+	if releaseTicket(Req):
 		print('released ticket, now exit.')
 	else:
 		print('not released ticket, now exit.')
