@@ -5,8 +5,11 @@ MSGLEN = 128
 
 
 def handle_request(sock, info, addr):
-	if(re.match(r'HELO.*', info.decode())):
-		sock.sendto('WELC'.encode(), addr)
+	if(re.match(r'HELO:xmu-network-t\d\d', info.decode())):
+		sock.sendto('WELC:0123456789'.encode(), addr)
+	else:
+		sock.sendto('RFUS'.encode(), addr)
+
 	#print(info.decode())
 	return
 
@@ -29,7 +32,7 @@ if __name__ == "__main__":
 			print('等待连接...')
 
 			info, addr = sock.recvfrom(MSGLEN)
-			print('...收到：',info,'连接自：',addr)
+			print('...收到：',info.decode(),'连接自：',addr)
 			handle_request(sock,info,addr)
 	except OSError as info:
 		print('OSError!', info)
