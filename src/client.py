@@ -1,7 +1,7 @@
 from ult.ClientAct import *
 
 if __name__ == "__main__":
-	Req = 'foaughifoi'
+	Req = KeyFormat
 	
 	# 是否将ticket 封装, 由'utl.config' 决定
 	# if showTicket:
