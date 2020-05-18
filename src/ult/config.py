@@ -4,8 +4,6 @@ MSGLEN = 128
 ServerIP_Port = ('127.0.0.1', 10000)
 # 服务器IP 地址与端口号
 
-KeyFormat = 'xmu-network-t03'
-# 意为：厦门大学-计算机网络-队伍03
 
 showTicket = False
 # 是否在终端展示收到的票据
@@ -15,3 +13,6 @@ nTicket = 23
 
 lenTicket = 10
 # 票据位数
+
+lenLicense = 10
+# 许可证位数

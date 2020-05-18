@@ -2,9 +2,9 @@ from ult.config import *
 from socket import *
 from random import randint
 import re
-
+import cx_Oracle
+import time
 Tickets = {}
-TStatus = {}
 madeTickets = False
 
 # 制作一份随机票据, 票据长度由'utl.config' 中决定
@@ -15,62 +15,106 @@ def makeTicke():
 
 	return ticket
 
+def makeLicense():
+	license = ''
+	for i in range(0, lenLicense):
+		license += str(randint(0, 9))
 
-# 该函数仅允许调用一次, 制作所有票据与票据状态记录
-# 票据数量由'utl.config'  中决定
-# 一次创建, 后续不允许添加, 仅允许更新
-def makeTickets():
-	global madeTickets
-	if not madeTickets:
-		# 为每组请求制定票据
-		for i in range(1, nTicket+1):
-			tno = str(i)
-			if len(tno) == 1:
-				tno = '0'+tno
+	return license
 
-			Tickets['xmu-network-t'+tno] = makeTicke()
-			# TStatus['xmu-network-t'+tno] = [False, False]
-			# 计划一: 分别为C/S 端的票据占用情况
-			TStatus['xmu-network-t'+tno] = 0
-			# 计划二: 记录同一票据申请情况, 应不超过2
-		
-		madeTickets = True
-	else:
-		return False
 
-	return True
+
+#获取当前使用人数
+def getUserNum(license):
+	conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
+	curs = conn.cursor()
+	sql = "select count(*) from client where lno = {}".format(license)
+	curs.execute(sql)
+	userNum  = curs.fetchall()[0][0]
+	curs.close()
+	conn.close()
+	return userNum
+
+#获取许可证最多使用人数
+def getMaxNum(license):
+	conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
+	curs = conn.cursor()
+	sql = "select userNum from license where lno = {}".format(license)
+	curs.execute(sql)
+	maxNum  = curs.fetchall()[0][0]
+	curs.close()
+	conn.close()
+	return maxNum
+
+#查询票据
+def searchTicket(ticket,license):
+	conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
+	curs = conn.cursor()
+	exist = 0
+	sql = "select count(*) from client where Tno = '{0}' and Lno = '{1}'".format(ticket,license)
+	try:
+		curs.execute(sql)
+		exist  = curs.fetchall()[0][0]
+	except cx_Oracle.DatabaseError as msg:
+		print(msg)
+	except cx_Oracle.InterfaceError as msg:
+		print(msg)
+	if exist == 1:
+		return True
+	return False
 
 
 # 申请票据, 若票据被完全占用则返回空
-def requestTicket(Req):
-	if TStatus[Req] < 2:
-		TStatus[Req] += 1
-		return Tickets[Req]
+def requestTicket(license):
+	userNum  = getUserNum(license)
+	
+	maxNum  = getMaxNum(license)
+
+	#当前人数小于许可证所允许人数则颁发票据
+	if(userNum < maxNum):
+		conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
+		curs = conn.cursor()
+		sql='insert into client(Tno,latestTime,Lno) values (:Tno,:latestTime,:Lno)' 
+		param = []
+		ticke = makeTicke()
+		param.append(ticke)
+		param.append(time.strftime('%H:%M:%S',time.localtime(time.time())))
+		param.append(license)
+		try:
+			curs.execute(sql,param)
+		except cx_Oracle.DatabaseError as msg:
+			print(msg)
+			#返回失败
+			return ""
+		conn.commit()
+		curs.close()
+		conn.close()
+		return ticke
 	
 	return ''	
 
 
-# 一份票据归还后失效, 并进行更新
+# 票据归还，暂无
 def updateTicket(Req):
-	Tickets[Req] = makeTicke()
+	return
 
 
-# 归还票据操作, 若使票据无人占用则更新
-def releaseTicket(Req):
-	if TStatus[Req] == 0:
+# 归还票据操作
+def releaseTicket(ticket,license):
+	conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
+	curs = conn.cursor()
+	sql = "delete client where lno = {} and Tno = {}".format(license,ticket)
+	try:
+		curs.execute(sql)
+		conn.commit()
+	except cx_Oracle.DatabaseError as msg:
+		print(msg)
 		return False
-	else:
-		TStatus[Req] -= 1
-
-	if TStatus[Req] == 0:
-		updateTicket(Req)
-	
 	return True
-
 
 # 服务器处理用户票据申请
 def doHELO(info):
-	req = re.findall('xmu-network-t\d\d', info)
+	req = re.findall('\d{10}', info)
 	sendM = ''
 
 	if req == []:
@@ -78,11 +122,16 @@ def doHELO(info):
 		print('>Requst Unknown')
 		sendM = 'RFUS:Could not recognize your reqest'
 	else:
-		Req = req[0]
+		license = req[0]
 
-		ticket = requestTicket(Req)
+		if checkLicense(license)==False:
+			print('>License error...')
+			sendM = 'RFUS:License error'
+
+		ticket = requestTicket(license)
 		if ticket:
-			print('>Deliver ticket:', ticket, '(rest:'+str(2-TStatus[Req])+')')
+			print('>Deliver ticket:', ticket, 
+					'(rest:'+str(getMaxNum(license)-getUserNum(license))+')')
 			sendM = 'WELC:'+ticket
 		else:
 			# 票据已被最多次申请
@@ -91,37 +140,85 @@ def doHELO(info):
 	
 	return sendM
 
+#检查许可证
+def checkLicense(license):
+	conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
+	curs = conn.cursor()
+	sql = "select count(*) from license where lno = {}".format(license)
+	curs.execute(sql)
+	result  = curs.fetchall()[0][0]
+	if result == 1:
+		return True
+	return False
 
 # 服务器处理用户票据归还
 def doRELS(info):
-	rels  = re.findall('xmu-network-t\d\dby:\d\d\d\d\d\d\d\d\d\d', info)
+	rels  = re.findall('\d{20}', info)
 	sendM = ''
 
 	if rels == []:
 		# 无法认证
-		print('>Request Unknown')
+		print('>Requst Unknown')
 		sendM = 'UKNW:Could not recognize your reqest'
 	else:
-		Rels = rels[0][:15]
-		ticket = rels[0][18:]
-
-		if TStatus[Rels] == 0:
-			# 试图归还一个未被授权的票据
-			print('>>WARNING<< someone tries to release an unused ticket!!')
+		license = rels[0][0:10]
+		ticket = rels[0][10:]
+		
+		if searchTicket(ticket,license) == False:
+			# 试图归还一个和许可证不匹配的票据
+			print('>>WARNING<< someone try to release an unused ticket!!')
 			sendM = 'WARN:!!!'
 
-		elif Tickets[Rels] == ticket:
-			# 授权申请和票据配对, 正常归还
-			releaseTicket(Rels)
+		elif searchTicket(ticket,license) == True:
+			# 许可证和票据配对, 正常归还
+			releaseTicket(ticket,license)
 			print(">Release ticket")
-			sendM = 'GBYE:Thank you for using our product'
-		else:
-			# 试图归还不匹配的申请和票据
-			print(">>WARNING<< someone try to release an ticket by Unmatched req-ticket")
-			sendM = 'WARN:Unmatched release-ticket'
-	
+			sendM = 'GBYE:Thank you for your using'
+
 	return sendM
 
+#服务器处理收到的购买许可证请求并作出答复
+def doPURC(info):
+	license = makeLicense()
+	infos = info.split(':')
+	userName = infos[1]
+	password = infos[2]
+	userNum = int(infos[3])
+	conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
+	curs = conn.cursor()
+
+	sql="select count(*) from all_tables where TABLE_NAME = 'LICENSE'"
+	curs.execute(sql)
+	result  = curs.fetchall()[0][0]
+	#没有表时，此时应先创建该表
+	if(result == 0):
+		sql = "create table license(Lno char(10),userName char(20),password char(20),userNum int)"
+		try:
+			curs.execute(sql)
+		except cx_Oracle.DatabaseError as msg:
+			print(msg)
+			sendM = "FAIL:Create Table error"
+			#返回失败
+			return sendM
+
+	#sql语句
+	sql='insert into license(Lno,userName,password,userNum) values (:license,:userName,:password,:userNum)' 
+	param = []
+	param.append(license)
+	param.append(userName)
+	param.append(password)
+	param.append(userNum)
+	try:
+		curs.execute(sql,param)
+	except cx_Oracle.DatabaseError as msg:
+		print(msg)
+		sendM = "FAIL:Insert error"
+		#返回失败
+		return sendM
+	print("License generated successfully")
+	sendM = "PERM:"+license
+	conn.commit()
+	return sendM
 
 # 服务器处理收到的请求并做出答复
 def handle_request(sock, info, addr):
@@ -139,7 +236,10 @@ def handle_request(sock, info, addr):
 		# 用户归还票据
 		print('-Request Release:', info, 'from: ', addr)
 		sendM = doRELS(info)
-		
+	
+	elif check == 'PURC':
+		print("Generate license...")
+		sendM = doPURC(info)
 	else:
 		# 无法识别信息
 		print('-Request Unrecognized:', info, 'from: ', addr)
@@ -149,4 +249,3 @@ def handle_request(sock, info, addr):
 	sock.sendto(sendM.encode(), addr)
 	return
 
-makeTickets()

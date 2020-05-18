@@ -1,14 +1,19 @@
 from ult.ClientAct import *
-
+import sys
+import time
 if __name__ == "__main__":
-	Req = KeyFormat
+	if(len(sys.argv)!=2):
+		print("Parameter error")
+		sys.exit(-1)
 	
-	# 是否将ticket 封装, 由'utl.config' 决定
-	# if showTicket:
-		# beTicket, ticket = requestTicket(Req)
-	# else:
-		# beTicket = requestTicket(Req)
-	beTicket = requestTicket(Req)
+	Req = sys.argv[1].upper()
+	if(Req == "PURC"):
+		purchaseLicense()
+		exit(0)
+
+	beTicket = False
+	if(Req == "STAR"):
+		beTicket = requestTicket()
 
 	if beTicket:
 		print('now start Working...')
@@ -20,7 +25,8 @@ if __name__ == "__main__":
 		print('Could not get ticket')
 		exit(0)
 
-	if releaseTicket(Req):
+	time.sleep(10)
+	if releaseTicket():
 		print('released ticket, now exit.')
 	else:
 		print('not released ticket, now exit.')
