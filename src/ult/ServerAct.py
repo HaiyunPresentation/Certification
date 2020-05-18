@@ -99,7 +99,7 @@ def doRELS(info):
 
 	if rels == []:
 		# 无法认证
-		print('>Requst Unknown')
+		print('>Request Unknown')
 		sendM = 'UKNW:Could not recognize your reqest'
 	else:
 		Rels = rels[0][:15]
@@ -107,14 +107,14 @@ def doRELS(info):
 
 		if TStatus[Rels] == 0:
 			# 试图归还一个未被授权的票据
-			print('>>WARNING<< someone try to release an unused ticket!!')
+			print('>>WARNING<< someone tries to release an unused ticket!!')
 			sendM = 'WARN:!!!'
 
 		elif Tickets[Rels] == ticket:
 			# 授权申请和票据配对, 正常归还
 			releaseTicket(Rels)
 			print(">Release ticket")
-			sendM = 'GBYE:Thank you for your using'
+			sendM = 'GBYE:Thank you for using our product'
 		else:
 			# 试图归还不匹配的申请和票据
 			print(">>WARNING<< someone try to release an ticket by Unmatched req-ticket")

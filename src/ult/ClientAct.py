@@ -50,7 +50,7 @@ def work():
 
 # 向服务器归还票据
 def releaseTicket(Req):
-	print('Releas Ticket...')
+	print('Release Ticket...')
 	sock = socket(AF_INET, SOCK_DGRAM)
 
 	relsTimes = 3
@@ -58,7 +58,7 @@ def releaseTicket(Req):
 		relsTimes -= 1
 
 		try:
-			msg = 'RELS:'+Req+'by:'+ticket
+			msg = 'RELS:'+Req+' by:'+ticket
 			sock.sendto(msg.encode(), ServerIP_Port)
 			info = sock.recv(MSGLEN).decode()
 			break
