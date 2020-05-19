@@ -117,7 +117,12 @@ def requestTicket():
 # 开始工作进程
 def work():
 	# 填入封装项目二
-    pass
+	while True:
+		str=''
+		str=input()
+		print(str)
+		if str=='exit':
+			break
 
 # 向服务器归还票据
 def releaseTicket():

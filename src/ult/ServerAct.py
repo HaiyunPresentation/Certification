@@ -3,6 +3,7 @@ from socket import *
 from random import randint
 import re
 import cx_Oracle
+import sqlite3
 import time
 Tickets = {}
 madeTickets = False
@@ -249,3 +250,39 @@ def handle_request(sock, info, addr):
 	sock.sendto(sendM.encode(), addr)
 	return
 
+# 初始化SQLite/Oracle数据库
+def init_db():
+	#conn=sqlite3.connect('info.db')
+	conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
+	curs = conn.cursor()
+	sql="select * from all_tables where TABLE_NAME = 'LICENSE'"
+	curs.execute(sql)
+	print('Result:',curs.fetchall())
+	result  = curs.fetchall()
+	#没有表时，此时应先创建该表
+	if(result == []):
+		sql = "create table license(Lno char(10),userName char(20),password char(20),userNum int)"
+		try:
+			print('Create table LICENSE...')
+			curs.execute(sql)
+		except cx_Oracle.DatabaseError as msg:
+			print(msg)
+	else:
+		print('table LICENSE has been created')
+	sql="select * from all_tables where TABLE_NAME = 'CLIENT'"
+	curs.execute(sql)
+	print('Result:',curs.fetchall())
+	result  = curs.fetchall()
+	#没有表时，此时应先创建该表
+	if(result == []):
+		sql = "create table client(Tno char(20),latestTime char(20),Lno char(20))"
+		try:
+			print('Create table CLIENT...')
+			curs.execute(sql)
+		except cx_Oracle.DatabaseError as msg:
+			print(msg)
+	else:
+		print('table CLIENT has been created')
+	#client(Tno,latestTime,Lno)
+	conn.commit()
+	return
