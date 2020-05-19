@@ -5,8 +5,8 @@ import re
 if __name__ == "__main__":
 	sock = socket(AF_INET, SOCK_DGRAM)
 	sock.bind(('0.0.0.0', 10000))
-	init_db()
-	try:		
+	initDB()
+	try:
 		while True:
 			print('Wait next request...')
 

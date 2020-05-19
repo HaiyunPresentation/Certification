@@ -3,9 +3,10 @@ from socket import *
 import os
 import re
 
-
 ticket = ''
 license = ''
+
+
 #购买许可证
 def purchaseLicense():
 	sock = socket(AF_INET, SOCK_DGRAM)
@@ -14,18 +15,18 @@ def purchaseLicense():
 	reqTimes = 3
 	while reqTimes:
 		reqTimes -= 1
-		
+
 		try:
 			userName = input("Please enter user name:")
-			if(userName==""):
+			if (userName == ""):
 				print("Username can not be empty")
 				continue
 			password = input("Please enter the password:")
-			if(password==""):
+			if (password == ""):
 				print("password can not be empty")
 				continue
 			userNum = input("Please enter the number of users:")
-			if(userNum==""):
+			if (userNum == ""):
 				print("The number of users can not be empty")
 				continue
 			try:
@@ -35,17 +36,19 @@ def purchaseLicense():
 				continue
 
 			#使用:作为分隔符
-			msg = 'PURC:'+ userName + ':' + password + ':' + userNum
+			msg = 'PURC:' + userName + ':' + password + ':' + userNum
 			sock.sendto(msg.encode(), ServerIP_Port)
 			info = sock.recv(MSGLEN).decode()
 
 			check = info[:4]
 
 			if check == 'PERM':
-				print("Successful purchase")
-				print("The license is:"+info[5:])
+				print("Successfully purchased")
+				print("The license is:" + info[5:])
+				sock.close()
+				return True
 			elif check == 'FAIL':
-				print("Failed purchase")
+				print("Failed to purchase")
 			else:
 				print('Unknown message:', info)
 				sock.close()
@@ -53,11 +56,13 @@ def purchaseLicense():
 				# 收到错误信息, 立即退出
 			break
 		except ConnectionError as Err:
-			print('Connect Error',Err)
+			print('Connection Error', Err)
 			continue
-	print("Purchase failed")
+	print("Purchase failed: Cannot receive from the license server!")
 	sock.close()
-	
+	return False
+
+
 # 根据给出申请语句向服务器申请票据, 申请语句格式参见 'ult.config' 或'README'
 def requestTicket():
 
@@ -65,23 +70,23 @@ def requestTicket():
 	Verified = False
 	global license
 	filename = "license.lic"
-	if(os.path.isfile("license.lic") == True):
+	if (os.path.isfile("license.lic") == True):
 		Verified = True
-		with open(filename,"r") as reader:
+		with open(filename, "r") as reader:
 			license = reader.readline()
 
 	else:
 		license = input("Please enter a license:")
-	
 
 	sock = socket(AF_INET, SOCK_DGRAM)
-
+	connected = False
 	reqTimes = 3
+	check = ''
 	while reqTimes:
 		reqTimes -= 1
-		
+
 		try:
-			msg = 'HELO:'+license
+			msg = 'HELO:' + license
 			sock.sendto(msg.encode(), ServerIP_Port)
 			info = sock.recv(MSGLEN).decode()
 
@@ -92,37 +97,40 @@ def requestTicket():
 				sock.close()
 				return False
 				# 收到错误信息, 立即退出
+			connected = True
 			break
 
 		except ConnectionError as Err:
-			print('Connect Error',Err)
+			print('Connection Error', Err)
 			continue
 
 	sock.close()
+	if connected == False:
+		return 'Failed to connect the server'
+
+	if check == 'RFUS':
+		return info[5:]
 
 	#第一次通过验证后将许可证保存起来
-	if(info[:4]=='WELC') and Verified == False:
-		with open(filename,"w") as writer:
+	if (check == 'WELC') and Verified == False:
+		with open(filename, "w") as writer:
 			writer.write(license)
 
 	global ticket
 	ticket = info[5:]
-	return info[:4]=='WELC'
-	# if showTicket:
-	# 	return info[:4]=='WELC', info
-	# else:
-	# 	ticket = info
-	# 	return info[:4]=='WELC'
+	return ''
+
 
 # 开始工作进程
 def work():
 	# 填入封装项目二
 	while True:
-		str=''
-		str=input()
+		str = ''
+		str = input()
 		print(str)
-		if str=='exit':
+		if str == 'exit':
 			break
+
 
 # 向服务器归还票据
 def releaseTicket():
@@ -134,14 +142,14 @@ def releaseTicket():
 		relsTimes -= 1
 
 		try:
-			msg = 'RELS:'+license+ticket
-			print("msg :"+msg)
+			msg = 'RELS:' + license + ticket
+			print("msg :" + msg)
 			sock.sendto(msg.encode(), ServerIP_Port)
 			info = sock.recv(MSGLEN).decode()
 			break
 		except ConnectionError as Err:
-			print('Connect Error', Err)
-			print('try again... (rest times: '+str(relsTimes)+')')
+			print('Connection Error', Err)
+			print('try again... (rest times: ' + str(relsTimes) + ')')
 			continue
 
 	sock.close()

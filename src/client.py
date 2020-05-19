@@ -2,32 +2,32 @@ from ult.ClientAct import *
 import sys
 import time
 if __name__ == "__main__":
-	if(len(sys.argv)!=2):
+	if (len(sys.argv) != 2):
 		print("Parameter error")
 		sys.exit(-1)
-	
+
 	Req = sys.argv[1].upper()
-	if(Req == "PURC"):
+	if (Req == "PURC"):
 		purchaseLicense()
 		exit(0)
 
-	beTicket = False
-	if(Req == "STAR"):
-		beTicket = requestTicket()
+	err = ''
+	if (Req == "STAR"):
+		err = requestTicket()
 
-	if beTicket:
-		print('now start Working...')
+	if err == '':
+		print('Now start working...')
 		print('--------------------')
 		work()
 		print('--------------------')
-		print('Work Done, now release License...')
+		print('Done, now release the license...')
 	else:
-		print('Could not get ticket')
+		print('Could not get ticket: ', err)
 		exit(0)
 
-	time.sleep(10)
+
 	if releaseTicket():
-		print('released ticket, now exit.')
+		print('Released ticket, now exit.')
 	else:
-		print('not released ticket, now exit.')
+		print('Cannot released ticket, now exit.')
 	exit()
