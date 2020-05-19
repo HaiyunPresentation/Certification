@@ -1,6 +1,8 @@
 from ult.ClientAct import *
 import sys
 import time
+import schedule
+
 if __name__ == "__main__":
 	if (len(sys.argv) != 2):
 		print("Parameter error")
@@ -16,6 +18,8 @@ if __name__ == "__main__":
 		err = requestTicket()
 
 	if err == '':
+		checkAliveThread=CheckAliveThread()
+		checkAliveThread.start()
 		print('Now start working...')
 		print('--------------------')
 		work()
@@ -24,10 +28,12 @@ if __name__ == "__main__":
 	else:
 		print('Could not get ticket: ', err)
 		exit(0)
+		
 
 
 	if releaseTicket():
 		print('Released ticket, now exit.')
 	else:
 		print('Cannot released ticket, now exit.')
-	exit()
+	stop_thread(checkAliveThread)
+	exit(0)

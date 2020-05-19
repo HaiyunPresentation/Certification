@@ -1,11 +1,38 @@
 from ult.config import *
 from socket import *
 import os
-import re
+import threading
+import schedule
+import time
+import inspect
+import ctypes
 
 ticket = ''
 license = ''
 
+def _async_raise(tid, exctype):
+	"""raises the exception, performs cleanup if needed"""
+	tid = ctypes.c_long(tid)
+	if not inspect.isclass(exctype):
+		exctype = type(exctype)
+	res = ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(exctype))
+	if res == 0:
+		raise ValueError("invalid thread id")
+	elif res != 1:
+		# """if it returns a number greater than one, you're in trouble,
+		# and you should call it again with exc=NULL to revert the effect"""
+		ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, None)
+		raise SystemError("PyThreadState_SetAsyncExc failed")
+ 
+ 
+def stop_thread(thread):
+	_async_raise(thread.ident, SystemExit)
+
+class CheckAliveThread(threading.Thread):
+	def run(self):
+		schedule.every(5).seconds.do(checkAlive)
+		while True:
+			schedule.run_pending()
 
 #购买许可证
 def purchaseLicense():
@@ -120,6 +147,27 @@ def requestTicket():
 	ticket = info[5:]
 	return ''
 
+# 每隔一段时间向服务器发送请求检查许可状态
+def checkAlive():
+	print('Checking alive...')
+	sock = socket(AF_INET, SOCK_DGRAM)
+
+	checkTimes = 3
+	while checkTimes:
+		checkTimes -= 1
+		try:
+			msg = 'CKAL:' + license + ticket
+			print("msg :" + msg)
+			sock.sendto(msg.encode(), ServerIP_Port)
+			info = sock.recv(MSGLEN).decode()
+			break
+		except ConnectionError as Err:
+			print('Connection Error', Err)
+			print('try again... (rest times: ' + str(checkimes) + ')')
+			continue
+
+	sock.close()
+	return info[:4] == 'GOOD'
 
 # 开始工作进程
 def work():
@@ -134,7 +182,7 @@ def work():
 
 # 向服务器归还票据
 def releaseTicket():
-	print('Releas Ticket...')
+	print('Releasing Ticket...')
 	sock = socket(AF_INET, SOCK_DGRAM)
 
 	relsTimes = 3

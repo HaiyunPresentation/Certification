@@ -5,8 +5,38 @@ import re
 import cx_Oracle
 import sqlite3
 import time
+import threading
+import schedule
+import inspect
+import ctypes
+
 Tickets = {}
 madeTickets = False
+
+
+def _async_raise(tid, exctype):
+	"""raises the exception, performs cleanup if needed"""
+	tid = ctypes.c_long(tid)
+	if not inspect.isclass(exctype):
+		exctype = type(exctype)
+	res = ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(exctype))
+	if res == 0:
+		raise ValueError("invalid thread id")
+	elif res != 1:
+		# """if it returns a number greater than one, you're in trouble,
+		# and you should call it again with exc=NULL to revert the effect"""
+		ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, None)
+		raise SystemError("PyThreadState_SetAsyncExc failed")
+ 
+ 
+def stop_thread(thread):
+	_async_raise(thread.ident, SystemExit)
+
+class ReclaimThread(threading.Thread):
+	def run(self):
+		schedule.every(5).seconds.do(checkReclaim)
+		while True:
+			schedule.run_pending()
 
 
 # 制作一份随机票据, 票据长度由'utl.config' 中决定
@@ -26,7 +56,26 @@ def makeLicense():
 	return license
 
 
-#获取当前使用人数
+# 定期检查客户端是否向
+def checkReclaim():
+	print('>Checked reclaim info:')
+	conn = sqlite3.connect('info.db')
+	curs = conn.cursor()
+	sql = "select * from client"
+	curs.execute(sql)
+	res = curs.fetchall()
+	#print(res)
+	for line in res:
+		latestTime=time.strptime(line[1],'%Y/%m/%d %H:%M:%S')
+		if time.time()-time.mktime(latestTime)>30:
+			print('delete: Tno=',line[0],' latestTime=',line[1],', lno=',line[2])
+			sql = "delete from client where Tno={} and latestTime='{}'".format(line[0],line[1])
+			curs.execute(sql)
+			conn.commit()
+	return
+
+
+# 获取当前使用人数
 def getUserNum(license):
 	#conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
 	conn = sqlite3.connect('info.db')
@@ -39,7 +88,7 @@ def getUserNum(license):
 	return userNum
 
 
-#获取许可证最多使用人数
+# 获取许可证最多使用人数
 def getMaxNum(license):
 	#conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
 	conn = sqlite3.connect('info.db')
@@ -57,7 +106,7 @@ def getMaxNum(license):
 	return maxNum
 
 
-#查询票据
+# 查询票据
 def searchTicket(ticket, license):
 	#conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
 	conn = sqlite3.connect('info.db')
@@ -92,7 +141,8 @@ def requestTicket(license):
 		param = []
 		ticke = makeTicke()
 		param.append(ticke)
-		param.append(time.strftime('%H:%M:%S', time.localtime(time.time())))
+		param.append(
+			time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(time.time())))
 		param.append(license)
 		try:
 			curs.execute(sql, param)
@@ -163,13 +213,40 @@ def doHELO(info):
 	return sendM
 
 
-#检查许可证
+def doCKAL(info):
+	rels = re.findall('\d{20}', info)
+	sendM = ''
+
+	if rels == []:
+		# 无法认证
+		print('>Requst Unknown')
+		sendM = 'UKNW:Cannot recognize your request'
+	else:
+		license = rels[0][0:10]
+		ticket = rels[0][10:]
+	conn = sqlite3.connect('info.db')
+	curs = conn.cursor()
+	latestTime = time.strftime('%Y/%m/%d %H:%M:%S',
+							   time.localtime(time.time()))
+	sql = "update client set latesttime='{}' where lno = {} and Tno = {}".format(
+		latestTime, license, ticket)
+	try:
+		curs.execute(sql)
+		conn.commit()
+	except error:
+		return 'FAIL: Failed to updatw'
+	sendM = 'GOOD:'
+	return sendM
+
+
+# 检查许可证
 def checkLicense(license):
 	conn = sqlite3.connect('info.db')
 	curs = conn.cursor()
 	sql = "select count(*) from license where lno = {}".format(license)
 	curs.execute(sql)
 	result = curs.fetchall()[0][0]
+	conn.close()
 	if result == 1:
 		return True
 	return False
@@ -183,7 +260,7 @@ def doRELS(info):
 	if rels == []:
 		# 无法认证
 		print('>Requst Unknown')
-		sendM = 'UKNW:Could not recognize your reqest'
+		sendM = 'UKNW:Cannot recognize your request'
 	else:
 		license = rels[0][0:10]
 		ticket = rels[0][10:]
@@ -202,7 +279,7 @@ def doRELS(info):
 	return sendM
 
 
-#服务器处理收到的购买许可证请求并作出答复
+# 服务器处理收到的购买许可证请求并作出答复
 def doPURC(info):
 	license = makeLicense()
 	infos = info.split(':')
@@ -232,7 +309,7 @@ def doPURC(info):
 
 
 # 服务器处理收到的请求并做出答复
-def handle_request(sock, info, addr):
+def handleRequest(sock, info, addr):
 	info = info.decode()
 	check = info[:4]
 	sendM = ''
@@ -240,12 +317,17 @@ def handle_request(sock, info, addr):
 	# 处理请求
 	if check == 'HELO':
 		# 用户请求票据
-		print('-Request Ticket:', info, 'from: ', addr)
+		print('-Request Ticket with License:', info, 'from: ', addr)
 		sendM = doHELO(info)
+
+	elif check == 'CKAL':
+		# 用户报告活动状态
+		print('-Request for checking', info, 'from: ', addr)
+		sendM = doCKAL(info)
 
 	elif check == 'RELS':
 		# 用户归还票据
-		print('-Request Release:', info, 'from: ', addr)
+		print('-Request for releasing:', info, 'from: ', addr)
 		sendM = doRELS(info)
 
 	elif check == 'PURC':
@@ -254,7 +336,7 @@ def handle_request(sock, info, addr):
 	else:
 		# 无法识别信息
 		print('-Request Unrecognized:', info, 'from: ', addr)
-		sendM = 'RFUS:???'
+		sendM = 'UKNW:???'
 
 	# 答复
 	sock.sendto(sendM.encode(), addr)
@@ -268,7 +350,7 @@ def initDB():
 	try:
 		sql = "select * from license"
 		curs.execute(sql)
-		print('table LICENSE has been created')
+		print('Table LICENSE has been created')
 	#没有license表时应先创建
 	except sqlite3.OperationalError:
 		sql = "create table license(Lno char(10),userName char(20),password char(20),userNum int)"
@@ -278,7 +360,7 @@ def initDB():
 	try:
 		sql = "select * from client"
 		curs.execute(sql)
-		print('table CLIENT has been created')
+		print('Table CLIENT has been created')
 
 	#没有client表时应先创建
 	except sqlite3.OperationalError:
