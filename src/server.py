@@ -1,13 +1,14 @@
 from ult.ServerAct import *
+from ult.killThread import *
 from socket import *
 
 if __name__ == "__main__":
 	sock = socket(AF_INET, SOCK_DGRAM)
 	sock.bind(('0.0.0.0', 10000))
 	initDB()
-	reclaimThread=ReclaimThread()
-	reclaimThread.start()
 	try:
+		reclaimThread=ReclaimThread()
+		reclaimThread.start()
 		while True:			
 			print('Wait for next request...')
 			info, addr = sock.recvfrom(MSGLEN)
@@ -16,6 +17,7 @@ if __name__ == "__main__":
 	except OSError as err:
 		print('OSError!', err)
 	except KeyboardInterrupt:
+		print('KeyboardInterrupt...')
 		stop_thread(reclaimThread)
 
 	sock.close()

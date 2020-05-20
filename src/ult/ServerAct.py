@@ -1,36 +1,18 @@
 from ult.config import *
+from ult.killThread import *
 from socket import *
 from random import randint
 import re
-import cx_Oracle
 import sqlite3
 import time
 import threading
 import schedule
-import inspect
-import ctypes
+
 
 Tickets = {}
 madeTickets = False
 
 
-def _async_raise(tid, exctype):
-	"""raises the exception, performs cleanup if needed"""
-	tid = ctypes.c_long(tid)
-	if not inspect.isclass(exctype):
-		exctype = type(exctype)
-	res = ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(exctype))
-	if res == 0:
-		raise ValueError("invalid thread id")
-	elif res != 1:
-		# """if it returns a number greater than one, you're in trouble,
-		# and you should call it again with exc=NULL to revert the effect"""
-		ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, None)
-		raise SystemError("PyThreadState_SetAsyncExc failed")
- 
- 
-def stop_thread(thread):
-	_async_raise(thread.ident, SystemExit)
 
 class ReclaimThread(threading.Thread):
 	def run(self):
@@ -63,13 +45,15 @@ def checkReclaim():
 	curs = conn.cursor()
 	sql = "select * from client"
 	curs.execute(sql)
+	conn.commit()
 	res = curs.fetchall()
-	#print(res)
+	print(res)
 	for line in res:
 		latestTime=time.strptime(line[1],'%Y/%m/%d %H:%M:%S')
 		if time.time()-time.mktime(latestTime)>30:
-			print('delete: Tno=',line[0],' latestTime=',line[1],', lno=',line[2])
-			sql = "delete from client where Tno={} and latestTime='{}'".format(line[0],line[1])
+			print('delete: Tno=',line[0],', latestTime=',line[1],', lno=',line[2])
+			sql = "delete from client where Tno='{}' and latestTime='{}'".format(line[0],line[1])
+			print(sql)
 			curs.execute(sql)
 			conn.commit()
 	return
@@ -77,7 +61,6 @@ def checkReclaim():
 
 # 获取当前使用人数
 def getUserNum(license):
-	#conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
 	conn = sqlite3.connect('info.db')
 	curs = conn.cursor()
 	sql = "select count(*) from client where lno = {}".format(license)
@@ -90,7 +73,6 @@ def getUserNum(license):
 
 # 获取许可证最多使用人数
 def getMaxNum(license):
-	#conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
 	conn = sqlite3.connect('info.db')
 	curs = conn.cursor()
 	sql = "select userNum from license where lno = {}".format(license)
@@ -108,7 +90,6 @@ def getMaxNum(license):
 
 # 查询票据
 def searchTicket(ticket, license):
-	#conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
 	conn = sqlite3.connect('info.db')
 	curs = conn.cursor()
 	exist = 0
@@ -117,9 +98,7 @@ def searchTicket(ticket, license):
 	try:
 		curs.execute(sql)
 		exist = curs.fetchall()[0][0]
-	except cx_Oracle.DatabaseError as msg:
-		print(msg)
-	except cx_Oracle.InterfaceError as msg:
+	except sqlite3.OperationalError as msg:
 		print(msg)
 	if exist == 1:
 		return True
@@ -134,7 +113,6 @@ def requestTicket(license):
 
 	#当前人数小于许可证所允许人数则颁发票据
 	if (userNum < maxNum):
-		#conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
 		conn = sqlite3.connect('info.db')
 		curs = conn.cursor()
 		sql = 'insert into client(Tno,latestTime,Lno) values (:Tno,:latestTime,:Lno)'
@@ -147,7 +125,7 @@ def requestTicket(license):
 		try:
 			curs.execute(sql, param)
 
-		except cx_Oracle.DatabaseError as msg:
+		except sqlite3.OperationalError as msg:
 			print(msg)
 			#返回失败
 			return ""
@@ -160,14 +138,8 @@ def requestTicket(license):
 	return ''
 
 
-# 票据归还，暂无
-def updateTicket(Req):
-	return
-
-
 # 归还票据操作
 def releaseTicket(ticket, license):
-	#conn = cx_Oracle.connect('test', 'test', 'localhost:1521/XE')
 	conn = sqlite3.connect('info.db')
 	curs = conn.cursor()
 	sql = "delete from client where lno = {} and Tno = {}".format(
@@ -175,7 +147,7 @@ def releaseTicket(ticket, license):
 	try:
 		curs.execute(sql)
 		conn.commit()
-	except cx_Oracle.DatabaseError as msg:
+	except sqlite3.OperationalError as msg:
 		print(msg)
 		return False
 	return True
@@ -189,7 +161,7 @@ def doHELO(info):
 	if req == []:
 		# 无法认证
 		print('>Requst Unknown')
-		sendM = 'RFUS:Could not recognize your reqest'
+		sendM = 'RFUS:Cannot recognize your request'
 	else:
 		license = req[0]
 
@@ -297,7 +269,7 @@ def doPURC(info):
 	param.append(userNum)
 	try:
 		curs.execute(sql, param)
-	except cx_Oracle.DatabaseError as msg:
+	except sqlite3.OperationalError as msg:
 		print(msg)
 		sendM = "FAIL:Insert error"
 		#返回失败

@@ -1,4 +1,5 @@
 from ult.ClientAct import *
+from ult.killThread import *
 import sys
 import time
 import schedule
@@ -17,7 +18,10 @@ if __name__ == "__main__":
 	if (Req == "STAR"):
 		err = requestTicket()
 
-	if err == '':
+	if err != '':
+		print('Could not get ticket: ', err)
+		exit(0)
+	try:
 		checkAliveThread=CheckAliveThread()
 		checkAliveThread.start()
 		print('Now start working...')
@@ -25,12 +29,10 @@ if __name__ == "__main__":
 		work()
 		print('--------------------')
 		print('Done, now release the license...')
-	else:
-		print('Could not get ticket: ', err)
-		exit(0)
+	except KeyboardInterrupt:
+		print('KeyboardInterrupt...')
+		pass
 		
-
-
 	if releaseTicket():
 		print('Released ticket, now exit.')
 	else:
