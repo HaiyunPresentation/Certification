@@ -76,7 +76,7 @@ WSGI_APPLICATION = 'license.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'info.db'),
+        'NAME': os.path.join(BASE_DIR, 'licensedjango.db'),
     }
 }
 

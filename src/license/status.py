@@ -6,7 +6,7 @@ from license.dbsearch import searchAll
 
 
 def status(request):
-    context ={}
-    context['license_table']=searchAll('license')
-    context['client_table']=searchAll('client')
-    return render(request,'status.html',context,content_type='text/html')
+    context = {}
+    context['license_table'] = searchAll('license')
+    context['client_table'] = searchAll('client')
+    return render(request, 'status.html', context, content_type='text/html')

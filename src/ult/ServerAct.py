@@ -4,6 +4,7 @@ from socket import *
 from random import randint
 import os
 import re
+import sys
 import sqlite3
 import time
 import platform
@@ -17,20 +18,28 @@ madeTickets = False
 
 class DjangoThread(threading.Thread):
     def run(self):
-        if platform.system()=='linux':
-            os.system("python3 manage.py runserver")
-        else:
-            os.system("python manage.py runserver")
+        try:
+            if platform.system()=='linux':
+                os.system("python3 manage.py runserver")
+            else:
+                os.system("python manage.py runserver")
+        except KeyboardInterrupt:
+            print('DjangoThread KeyboardInterrupt...')
+            os._exit(-1)      
 
 class ReclaimThread(threading.Thread):
     def run(self):
         schedule.every(30).seconds.do(checkReclaim)
         while True:
-            schedule.run_pending()
-
+            try:
+                schedule.run_pending()
+            except KeyboardInterrupt:
+                print('KeyboardInterrupt...')
+                print('DjangoThread KeyboardInterrupt...')
+                os._exit(-1)
 
 # 制作一份随机票据, 票据长度由'utl.config' 中决定
-def makeTicke():
+def makeTicket():
     ticket = ''
     for i in range(0, lenTicket):
         ticket += str(randint(0, 9))
@@ -49,7 +58,7 @@ def makeLicense():
 # 定期检查客户端是否向
 def checkReclaim():
     print('>Checked reclaim info:')
-    conn = sqlite3.connect('info.db')
+    conn = sqlite3.connect(databaseName)
     curs = conn.cursor()
     sql = "select * from client"
     curs.execute(sql)
@@ -69,7 +78,7 @@ def checkReclaim():
 
 # 获取当前使用人数
 def getUserNum(license):
-    conn = sqlite3.connect('info.db')
+    conn = sqlite3.connect(databaseName)
     curs = conn.cursor()
     sql = "select count(*) from client where lno = {}".format(license)
     curs.execute(sql)
@@ -81,7 +90,7 @@ def getUserNum(license):
 
 # 获取许可证最多使用人数
 def getMaxNum(license):
-    conn = sqlite3.connect('info.db')
+    conn = sqlite3.connect(databaseName)
     curs = conn.cursor()
     sql = "select userNum from license where lno = {}".format(license)
     curs.execute(sql)
@@ -98,7 +107,7 @@ def getMaxNum(license):
 
 # 查询票据
 def searchTicket(ticket, license):
-    conn = sqlite3.connect('info.db')
+    conn = sqlite3.connect(databaseName)
     curs = conn.cursor()
     exist = 0
     sql = "select count(*) from client where Tno = '{0}' and Lno = '{1}'".format(
@@ -112,6 +121,20 @@ def searchTicket(ticket, license):
         return True
     return False
 
+# 查询许可证
+def searchLicense(license):
+    conn = sqlite3.connect(databaseName)
+    curs = conn.cursor()
+    exist = 0
+    sql = "select count(*) from license where Lno = '{0}'".format(license)
+    try:
+        curs.execute(sql)
+        exist = curs.fetchall()[0][0]
+    except sqlite3.OperationalError as msg:
+        print(msg)
+    if exist == 1:
+        return True
+    return False
 
 # 申请票据, 若票据被完全占用则返回空
 def requestTicket(license):
@@ -121,12 +144,15 @@ def requestTicket(license):
 
     #当前人数小于许可证所允许人数则颁发票据
     if (userNum < maxNum):
-        conn = sqlite3.connect('info.db')
+        conn = sqlite3.connect(databaseName)
         curs = conn.cursor()
         sql = 'insert into client(Tno,latestTime,Lno) values (:Tno,:latestTime,:Lno)'
         param = []
-        ticke = makeTicke()
-        param.append(ticke)
+        ticket = makeTicket()
+        # 确保[License]:[Ticket]唯一性
+        while searchTicket(ticket, license) == True:
+            ticket = makeTicket()
+        param.append(ticket)
         param.append(
             time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(time.time())))
         param.append(license)
@@ -141,14 +167,14 @@ def requestTicket(license):
         conn.commit()
         curs.close()
         conn.close()
-        return ticke
+        return ticket
 
     return ''
 
 
 # 归还票据操作
 def releaseTicket(ticket, license):
-    conn = sqlite3.connect('info.db')
+    conn = sqlite3.connect(databaseName)
     curs = conn.cursor()
     sql = "delete from client where lno = {} and Tno = {}".format(
         license, ticket)
@@ -204,7 +230,7 @@ def doCKAL(info):
     else:
         license = rels[0][0:10]
         ticket = rels[0][10:]
-    conn = sqlite3.connect('info.db')
+    conn = sqlite3.connect(databaseName)
     curs = conn.cursor()
     latestTime = time.strftime('%Y/%m/%d %H:%M:%S',
                                time.localtime(time.time()))
@@ -214,14 +240,14 @@ def doCKAL(info):
         curs.execute(sql)
         conn.commit()
     except error:
-        return 'FAIL: Failed to updatw'
+        return 'FAIL: Failed to update'
     sendM = 'GOOD:'
     return sendM
 
 
 # 检查许可证
 def checkLicense(license):
-    conn = sqlite3.connect('info.db')
+    conn = sqlite3.connect(databaseName)
     curs = conn.cursor()
     sql = "select count(*) from license where lno = {}".format(license)
     curs.execute(sql)
@@ -266,7 +292,7 @@ def doPURC(info):
     userName = infos[1]
     password = infos[2]
     userNum = int(infos[3])
-    conn = sqlite3.connect('info.db')
+    conn = sqlite3.connect(databaseName)
     curs = conn.cursor()
     #sql语句
     sql = 'insert into license(Lno,userName,password,userNum) values (:license,:userName,:password,:userNum)'
@@ -325,7 +351,7 @@ def handleRequest(sock, info, addr):
 
 # 初始化SQLite数据库
 def initDB():
-    conn = sqlite3.connect('info.db')
+    conn = sqlite3.connect(databaseName)
     curs = conn.cursor()
     try:
         sql = "select * from license"
@@ -333,7 +359,7 @@ def initDB():
         print('Table LICENSE has been created')
     #没有license表时应先创建
     except sqlite3.OperationalError:
-        sql = "create table license(Lno char(10),userName char(20),password char(20),userNum int)"
+        sql = "create table license(Lno char(10) primary key,userName char(20),password char(20),userNum int)"
         print('Create table license...')
         curs.execute(sql)
 
@@ -344,8 +370,8 @@ def initDB():
 
     #没有client表时应先创建
     except sqlite3.OperationalError:
-        sql = "create table client(Tno char(20),latestTime char(20),Lno char(20))"
-        print('Create table CLIENT...')
+        sql = "create table client(Tno char(20),latestTime char(20),Lno char(20),primary key(Tno,Lno))"
+        print('Create table client...')
         curs.execute(sql)
 
     conn.commit()

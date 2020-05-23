@@ -9,3 +9,6 @@ lenTicket = 10
 
 lenLicense = 10
 # 许可证位数
+
+databaseName='info.db'
+# SQLite数据库名称

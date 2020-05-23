@@ -46,8 +46,11 @@ def purchaseLicense():
             #使用:作为分隔符
             msg = 'PURC:' + userName + ':' + password + ':' + userNum
             sock.sendto(msg.encode(), ServerIP_Port)
+            sock.settimeout(10)
             info = sock.recv(MSGLEN).decode()
-
+            if not info:
+                print('Timeout!')
+                return False
             check = info[:4]
 
             if check == 'PERM':
@@ -96,14 +99,18 @@ def requestTicket():
         try:
             msg = 'HELO:' + license
             sock.sendto(msg.encode(), ServerIP_Port)
+            sock.settimeout(10)
             info = sock.recv(MSGLEN).decode()
 
+            if not info:
+                print('Timeout!')
+                return 'Timeout'
             check = info[:4]
 
             if check != 'WELC' and check != 'RFUS':
                 print('Unknown message:', info)
                 sock.close()
-                return False
+                return 'Unknown'
                 # 收到错误信息, 立即退出
             connected = True
             break

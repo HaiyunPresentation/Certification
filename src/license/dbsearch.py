@@ -1,5 +1,12 @@
 import sqlite3
 
+def deleteLicense(Lno):
+    conn = sqlite3.connect('info.db')
+    curs = conn.cursor()
+    sql = "delete * from license where lno='"+Lno+"'"
+    curs.execute(sql)
+    conn.commit()
+    return 'Successfully delete!'
 
 def searchAll(table):
     conn = sqlite3.connect('info.db')
@@ -9,7 +16,6 @@ def searchAll(table):
     collist = curs.fetchall()
     sql = "select * from " + table
     curs.execute(sql)
-    #conn.commit()
     res = curs.fetchall()
     response = '<table border="1"><tr>'
     for colinfo in collist:

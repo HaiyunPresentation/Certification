@@ -55,5 +55,5 @@ if __name__ == "__main__":
         print('Released ticket, now exit.')
     else:
         print('Cannot released ticket, now exit.')
-    stop_thread(checkAliveThread)
+    stopThread(checkAliveThread)
     exit(0)

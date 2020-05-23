@@ -17,5 +17,5 @@ def _async_raise(tid, exctype):
         raise SystemError("PyThreadState_SetAsyncExc failed")
  
  
-def stop_thread(thread):
+def stopThread(thread):
     _async_raise(thread.ident, SystemExit)
