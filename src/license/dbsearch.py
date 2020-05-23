@@ -17,7 +17,7 @@ def searchAll(table):
     sql = "select * from " + table
     curs.execute(sql)
     res = curs.fetchall()
-    response = '<table border="1"><tr>'
+    response = '<table class="table table-striped"><tr>'
     for colinfo in collist:
         response += '<th>' + colinfo[1] + '</th>'
     response += '</tr>'

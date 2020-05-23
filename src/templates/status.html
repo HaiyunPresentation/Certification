@@ -1,16 +1,27 @@
 <!DOCTYPE html>
 <html>
+<!-- Bootstrap core CSS -->
+<link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Custom styles for this template -->
+<link href="/static/bootstrap/css/dashboard.css" rel="stylesheet">
+<script src="/static/bootstrap/js/jquery-2.2.3.js"></script>
+<script src="/static/bootstrap/js/bootstrap.min.js"></script>
+<!-- Just to make our placeholder images work. Don't actually copy the next line! -->
+<script src="/static/bootstrap/js/holder.min.js"></script>
 
 <head>
     <meta charset="utf-8">
     <title>LicenseMyAdmin - Status</title>
 </head>
 <body>
+<div class="container">
     <h1>LicenseMyAdmin</h1>
     <h2>Status</h2>
     <h3>License list</h3>
     {{ license_table|safe }}
     <h3>Client list</h3>
     {{ client_table|safe }}
+</div>
 </body>
 </html>
