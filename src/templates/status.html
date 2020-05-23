@@ -12,16 +12,21 @@
 
 <head>
     <meta charset="utf-8">
-    <title>LicenseMyAdmin - Status</title>
+    <title>{% block title %}LicenseMyAdmin - Status{% endblock %}</title>
+    
 </head>
+
 <body>
-<div class="container">
-    <h1>LicenseMyAdmin</h1>
-    <h2>Status</h2>
-    <h3>License list</h3>
-    {{ license_table|safe }}
-    <h3>Client list</h3>
-    {{ client_table|safe }}
-</div>
+    {% block content %}
+    <div class="container">
+        <h1>LicenseMyAdmin</h1>
+        <h2>Status</h2>
+        <h3>License list</h3>
+        {{ license_table|safe }}
+        <h3>Client list</h3>
+        {{ client_table|safe }}
+    </div>
+    {% endblock %}
 </body>
+
 </html>

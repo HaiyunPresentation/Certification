@@ -288,6 +288,8 @@ def doRELS(info):
 # 服务器处理收到的购买许可证请求并作出答复
 def doPURC(info):
     license = makeLicense()
+    while searchLicense(license) == True:
+        license = makeLicense()
     infos = info.split(':')
     userName = infos[1]
     password = infos[2]
