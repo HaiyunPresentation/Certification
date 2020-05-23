@@ -6,7 +6,10 @@ if __name__ == "__main__":
     sock = socket(AF_INET, SOCK_DGRAM)
     sock.bind(('0.0.0.0', 10000))
     initDB()
+
     try:
+        djangoThread=DjangoThread()
+        djangoThread.start()
         reclaimThread=ReclaimThread()
         reclaimThread.start()
         while True:            
@@ -19,5 +22,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print('KeyboardInterrupt...')
         stop_thread(reclaimThread)
-
+        stop_thread(djangoThread)
     sock.close()

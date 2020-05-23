@@ -2,9 +2,11 @@ from ult.config import *
 from ult.killThread import *
 from socket import *
 from random import randint
+import os
 import re
 import sqlite3
 import time
+import platform
 import threading
 import schedule
 
@@ -13,6 +15,12 @@ Tickets = {}
 madeTickets = False
 
 
+class DjangoThread(threading.Thread):
+    def run(self):
+        if platform.system()=='linux':
+            os.system("python3 manage.py runserver")
+        else:
+            os.system("python manage.py runserver")
 
 class ReclaimThread(threading.Thread):
     def run(self):
