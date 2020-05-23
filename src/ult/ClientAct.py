@@ -130,7 +130,7 @@ def requestTicket():
 
 # 每隔一段时间向服务器发送请求检查许可状态
 def checkAlive():
-	print('Checking alive...')
+	print('\n------\nChecking alive...')
 	sock = socket(AF_INET, SOCK_DGRAM)
 
 	checkTimes = 3
@@ -138,12 +138,12 @@ def checkAlive():
 		checkTimes -= 1
 		try:
 			msg = 'CKAL:' + license + ticket
-			print("msg :" + msg)
+			print("msg :" , msg, '\n------')
 			sock.sendto(msg.encode(), ServerIP_Port)
 			info = sock.recv(MSGLEN).decode()
 			break
 		except ConnectionError as Err:
-			print('Connection Error', Err)
+			#print('Connection Error', Err)
 			print('try again... (rest times: ' + str(checkimes) + ')')
 			continue
 

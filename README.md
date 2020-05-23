@@ -3,9 +3,9 @@
 ## Protocol
 ### Client
 ```
-PURC:[username]:[password]:[userNum] # Purchase license
-HELO:[license]                       # Say hello
-CKAL:                                # Check alive
+PURC:[username]:[password]:[userNum] # Purchase license from the server
+HELO:[license]                       # Say hello to the server with license
+CKAL:                                # Check ticket alive
 RELS:[license]:[ticket]              # Release ticket
 ```
 ### Server
@@ -16,6 +16,6 @@ WELC:[ticket]                        # Give a ticket
 RFUS:[info]                          # Refuse to give a ticket
 UKNW:[info]                          # Cannot recognize the request
 GOOD:                                # Permit the alive check
-WARN:[info]                          # Receive an unused ticket from client
-GBYE:[info]                          # Say goodbye to client
+WARN:[info]                          # Receive an unused ticket from a client
+GBYE:[info]                          # Say goodbye to a client
 ```

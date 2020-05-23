@@ -16,7 +16,7 @@ madeTickets = False
 
 class ReclaimThread(threading.Thread):
 	def run(self):
-		schedule.every(5).seconds.do(checkReclaim)
+		schedule.every(30).seconds.do(checkReclaim)
 		while True:
 			schedule.run_pending()
 
