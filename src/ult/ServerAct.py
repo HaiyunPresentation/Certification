@@ -19,10 +19,13 @@ madeTickets = False
 class DjangoThread(threading.Thread):
     def run(self):
         try:
-            if platform.system()=='linux':
-                os.system("python3 manage.py runserver")
-            else:
-                os.system("python manage.py runserver")
+            # 默认命令行调用
+            #if platform.system()=='linux':
+            #    os.system("python3 manage.py runserver")
+            #else:
+            #    os.system("python manage.py runserver")
+            # manage打包则调用manage.py
+            os.system("manage runserver")
         except KeyboardInterrupt:
             print('DjangoThread KeyboardInterrupt...')
             os._exit(-1)      
