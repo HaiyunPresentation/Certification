@@ -5,7 +5,7 @@
 ```
 PURC:[username]:[password]:[userNum] # Purchase license from the server
 HELO:[license]                       # Say hello to the server with license
-CKAL:                                # Check ticket alive
+CKAL:[license]:[ticket]              # Check ticket alive
 RELS:[license]:[ticket]              # Release ticket
 ```
 ### Server
