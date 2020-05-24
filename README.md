@@ -1,5 +1,8 @@
 # License
 *This is Project 3 of CNI course in Department of Software Engineering, School of Infomatics, Xiamen University.*  
+## Dependencies 
+- Python 3
+- Django 3
 ## Protocol
 ### Client
 ```
@@ -19,4 +22,20 @@ RFUS:[info]                          # Refuse to give a ticket,
 GOOD:                                # Permit the alive check
 WARN:[info]                          # Receive an unused ticket from a client
 GBYE:[info]                          # Say goodbye to a client
+```
+## Usage
+### Client
+```
+    python client.py [--mode]
+```
+Mode list:
+ - -p, --purchse
+ - -r, --run
+### Server
+```
+    python server.py
+```
+Automatically run the Django server (Port:8000):
+```
+    python manage.py runserver
 ```
