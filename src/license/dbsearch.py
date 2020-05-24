@@ -1,5 +1,6 @@
 import sqlite3
 from ult.config import *
+from ult.ServerAct import initDB
 
 def deleteLicense(Lno):
     conn = sqlite3.connect(databaseName)
@@ -36,12 +37,18 @@ def deleteClient(Tno, Lno):
 def searchAll(table):
     conn = sqlite3.connect(databaseName)
     curs = conn.cursor()
+    sql = "select * from " + table
+    try:
+        curs.execute(sql)
+    except sqlite3.OperationalError:
+        initDB()
+        curs.execute(sql)
+    res = curs.fetchall()
+
     colsql = "PRAGMA table_info([" + table + "])"
     curs.execute(colsql)
     collist = curs.fetchall()
-    sql = "select * from " + table
-    curs.execute(sql)
-    res = curs.fetchall()
+
     response = '<table class="table table-striped"><tr>'
     for colinfo in collist:
         response += '<th>' + colinfo[1] + '</th>'

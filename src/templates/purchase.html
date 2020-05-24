@@ -12,12 +12,12 @@
 			{% endif %}
 			{% csrf_token %}
 			<h2 class="text-center">Welcome to Purchase</h2>
-			<br>
+			<br/>
 			{{ purchase_form }}
 			<div style="display: none;">
 				<input id="next" type="text" name="next_url" value="{{ next_url }}" />
 			</div>
-			<br>
+			<br/>
 			<button type="reset" class="btn btn-default pull-left">Reset</button>
 			<button type="submit" class="btn btn-primary pull-right">Submit</button>
 
