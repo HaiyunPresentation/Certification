@@ -16,10 +16,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from django.conf.urls import url
-from . import status, purchase
+from . import status, purchase, dbsearch, delete
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     url(r'^$', status.status),
-    path('purchase/',purchase.purchase)
+    path('purchase/', purchase.purchase),
+    path('deleteLicense/', delete.deleteLicense)
 ]

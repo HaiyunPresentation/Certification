@@ -4,22 +4,31 @@
 <link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 
 <!-- Custom styles for this template -->
-<link href="/static/bootstrap/css/dashboard.css" rel="stylesheet">
-<script src="/static/bootstrap/js/jquery-2.2.3.js"></script>
+<script src="/static/bootstrap/js/jquery-3.5.1.min.js"></script>
 <script src="/static/bootstrap/js/bootstrap.min.js"></script>
-<!-- Just to make our placeholder images work. Don't actually copy the next line! -->
-<script src="/static/bootstrap/js/holder.min.js"></script>
 
 <head>
     <meta charset="utf-8">
     <title>{% block title %}LicenseMyAdmin - Status{% endblock %}</title>
-    
+
 </head>
 
 <body>
+    <header id="top">
+        <div class="container">
+            <ul class="nav navbar-brand">
+                <li>LicenseMyAdmin</li>
+            </ul>
+            <ul class="nav navbar-nav">
+                <li><a href="/"><i></i>Status</a></li>
+            </ul>
+            <ul class="nav navbar-nav">
+                <li><a href="/purchase"><i></i>Purchase</a></li>
+            </ul>
+        </div>
+    </header>
     {% block content %}
     <div class="container">
-        <h1>LicenseMyAdmin</h1>
         <h2>Status</h2>
         <h3>License list</h3>
         {{ license_table|safe }}
@@ -27,6 +36,14 @@
         {{ client_table|safe }}
     </div>
     {% endblock %}
+    <footer>
+        <div class="container">
+            <div>
+                <h4>LicenseMyAdmin</h4>
+                <p> @2020 <a href="https://github.com/HaiyunPresentaion">HaiyunPresentaion</a></p>
+            </div>
+        </div>
+    </footer>
 </body>
 
 </html>
