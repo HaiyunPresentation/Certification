@@ -22,5 +22,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     url(r'^$', status.status),
     path('purchase/', purchase.purchase),
-    path('deleteLicense/', delete.deleteLicense)
+    path('deleteLicense/', delete.deleteLicense),
+    path('deleteClient/', delete.deleteClient)
 ]

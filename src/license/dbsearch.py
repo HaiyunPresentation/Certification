@@ -17,6 +17,21 @@ def deleteLicense(Lno):
         conn.close()
         return False
 
+def deleteClient(Tno, Lno):
+    conn = sqlite3.connect(databaseName)
+    curs = conn.cursor()
+    try:
+        sql = "delete from client where lno='" + Lno + "' and tno='"+Tno+"'"
+        curs.execute(sql)
+        conn.commit()
+        sql = "delete from license where lno='" + Lno + " and tno='"+Tno+"'"
+        curs.execute(sql)
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.OperationalError:
+        conn.close()
+        return False
 
 def searchAll(table):
     conn = sqlite3.connect(databaseName)
@@ -38,6 +53,12 @@ def searchAll(table):
         if table == 'license':
             response += "<td><a href='/deleteLicense/?Lno="
             response += var[0]
+            response += "'>delete</a></td>"
+        else:
+            response +="<td><a href='/deleteClient/?Tno="
+            response += var[0]
+            response +="&Lno="
+            response += var[2]
             response += "'>delete</a></td>"
         response += '</tr>'
     return response + "</table>"

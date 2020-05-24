@@ -11,12 +11,13 @@
 			<div class="alert alert-warning">{{ message }}</div>
 			{% endif %}
 			{% csrf_token %}
-			<h2 class="text-center">Welcome to Purchase - LicenseMyAdmin</h2>
-
+			<h2 class="text-center">Welcome to Purchase</h2>
+			<br>
 			{{ purchase_form }}
 			<div style="display: none;">
 				<input id="next" type="text" name="next_url" value="{{ next_url }}" />
 			</div>
+			<br>
 			<button type="reset" class="btn btn-default pull-left">Reset</button>
 			<button type="submit" class="btn btn-primary pull-right">Submit</button>
 

@@ -10,3 +10,11 @@ def deleteLicense(request):
         else:
             return redirect('/')
     return redirect('/')
+
+def deleteClient(request):
+    if request.method == "GET":
+        if dbsearch.deleteClient(request.GET.get('Tno'),request.GET.get('Lno'))==True:
+            return redirect('/')
+        else:
+            return redirect('/')
+    return redirect('/')

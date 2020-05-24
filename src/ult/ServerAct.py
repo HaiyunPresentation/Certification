@@ -80,7 +80,7 @@ def checkReclaim():
 def getUserNum(license):
     conn = sqlite3.connect(databaseName)
     curs = conn.cursor()
-    sql = "select count(*) from client where lno = {}".format(license)
+    sql = "select count(*) from client where lno = '{}'".format(license)
     curs.execute(sql)
     userNum = curs.fetchall()[0][0]
     curs.close()
@@ -92,12 +92,12 @@ def getUserNum(license):
 def getMaxNum(license):
     conn = sqlite3.connect(databaseName)
     curs = conn.cursor()
-    sql = "select userNum from license where lno = {}".format(license)
+    sql = "select userNum from license where lno = '{}'".format(license)
     curs.execute(sql)
     res = curs.fetchall()
     print(res, 'len=', len(res))
     if len(res) == 0:
-        return -1
+        return 
     maxNum = res[0][0]
     print('maxNum=', maxNum)
     curs.close()
@@ -176,14 +176,12 @@ def requestTicket(license):
 def releaseTicket(ticket, license):
     conn = sqlite3.connect(databaseName)
     curs = conn.cursor()
-    sql = "delete from client where lno = {} and Tno = {}".format(
-        license, ticket)
-    try:
-        curs.execute(sql)
-        conn.commit()
-    except sqlite3.OperationalError as msg:
-        print(msg)
+    if searchTicket(ticket,license)==False:
         return False
+    sql = "delete from client where lno = '{}' and tno = '{}'".format(
+        license, ticket)
+    curs.execute(sql)
+    conn.commit()
     return True
 
 
@@ -200,7 +198,7 @@ def doHELO(info):
         license = req[0]
 
         # 伪造的证书
-        if checkLicense(license) == False:
+        if searchLicense(license) == False:
             print('>License error...')
             sendM = 'RFUS:License error'
             return sendM
@@ -230,32 +228,21 @@ def doCKAL(info):
     else:
         license = rels[0][0:10]
         ticket = rels[0][10:]
+    if searchTicket(ticket,license)==False:
+        return 'RFUS: Failed to update'
     conn = sqlite3.connect(databaseName)
     curs = conn.cursor()
     latestTime = time.strftime('%Y/%m/%d %H:%M:%S',
                                time.localtime(time.time()))
-    sql = "update client set latesttime='{}' where lno = {} and Tno = {}".format(
+    sql = "update client set latesttime='{}' where lno = {} and tno = {}".format(
         latestTime, license, ticket)
-    try:
-        curs.execute(sql)
-        conn.commit()
-    except error:
-        return 'FAIL: Failed to update'
+    curs.execute(sql)
+    conn.commit()
+    result = curs.fetchall()
+    print(result)
     sendM = 'GOOD:'
     return sendM
 
-
-# 检查许可证
-def checkLicense(license):
-    conn = sqlite3.connect(databaseName)
-    curs = conn.cursor()
-    sql = "select count(*) from license where lno = {}".format(license)
-    curs.execute(sql)
-    result = curs.fetchall()[0][0]
-    conn.close()
-    if result == 1:
-        return True
-    return False
 
 
 # 服务器处理用户票据归还

@@ -21,6 +21,15 @@ if __name__ == "__main__":
         print('OSError!', err)
     except KeyboardInterrupt:
         print('KeyboardInterrupt...')
-        stopThread(reclaimThread)
-        stopThread(djangoThread)
+        try:
+            stopThread(reclaimThread)
+            stopThread(djangoThread)
+        except ValueError as e:
+            print(e)
+            sock.close()
+            sys.exit(-1)
+        except SystemError as e:
+            print(e)
+            sock.close()
+            sys.exit(-1)
     sock.close()

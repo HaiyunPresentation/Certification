@@ -1,7 +1,7 @@
 from ult.config import *
 from socket import *
 import os
-import threading
+import threading, traceback, sys
 import schedule
 import time
 
@@ -10,10 +10,17 @@ license = ''
 
 
 class CheckAliveThread(threading.Thread):
+    def __init__(self):
+        super(CheckAliveThread, self).__init__()
+        self.refused=False
     def run(self):
         schedule.every(5).seconds.do(checkAlive)
-        while True:
-            schedule.run_pending()
+        try:
+            while True:
+                schedule.run_pending()
+                self.refused=False
+        except RefusedError as e:
+            self.refused=True
 
 #购买许可证
 def purchaseLicense():
@@ -46,11 +53,12 @@ def purchaseLicense():
             #使用:作为分隔符
             msg = 'PURC:' + userName + ':' + password + ':' + userNum
             sock.sendto(msg.encode(), ServerIP_Port)
-            sock.settimeout(10)
-            info = sock.recv(MSGLEN).decode()
-            if not info:
-                print('Timeout!')
-                return False
+            sock.settimeout(5)
+            try:
+                info = sock.recv(MSGLEN).decode()
+            except OSError as e:
+                print(e)
+                raise TimeoutError
             check = info[:4]
 
             if check == 'PERM':
@@ -99,12 +107,13 @@ def requestTicket():
         try:
             msg = 'HELO:' + license
             sock.sendto(msg.encode(), ServerIP_Port)
-            sock.settimeout(10)
-            info = sock.recv(MSGLEN).decode()
-
-            if not info:
-                print('Timeout!')
-                return 'Timeout'
+            sock.settimeout(5)
+            try:
+                info = sock.recv(MSGLEN).decode()
+            except OSError as e:
+                print(e)
+                raise TimeoutError
+                #return 'Timeout'
             check = info[:4]
 
             if check != 'WELC' and check != 'RFUS':
@@ -139,49 +148,57 @@ def requestTicket():
 def checkAlive():
     print('\n------\nChecking alive...')
     sock = socket(AF_INET, SOCK_DGRAM)
-
+    ans=''
     checkTimes = 3
     while checkTimes:
         checkTimes -= 1
         try:
             msg = 'CKAL:' + license + ticket
-            print("msg :" , msg, '\n------')
+            print("msg :" , msg)
             sock.sendto(msg.encode(), ServerIP_Port)
-            info = sock.recv(MSGLEN).decode()
+            sock.settimeout(5)
+            try:
+                info = sock.recv(MSGLEN).decode()
+            except OSError as e:
+                print('Timeout Error',e)
+                print('try again... (rest times: ' + str(checkTimes) + ')')
+                continue
+            ans=info[:4]
             break
         except ConnectionError as Err:
             #print('Connection Error', Err)
-            print('try again... (rest times: ' + str(checkimes) + ')')
+            print('try again... (rest times: ' + str(checkTimes) + ')')
             continue
 
     sock.close()
-    return info[:4] == 'GOOD'
+    print('------')
+    if ans=='RFUS':
+        raise RefusedError
+    return ans == 'GOOD'
 
-# 开始工作进程
-def work():
-    # 填入封装项目二
-    while True:
-        str = ''
-        str = input()
-        print(str)
-        if str == 'exit':
-            break
+    
 
 
 # 向服务器归还票据
 def releaseTicket():
     print('Releasing Ticket...')
     sock = socket(AF_INET, SOCK_DGRAM)
-
+    info=''
     relsTimes = 3
     while relsTimes:
         relsTimes -= 1
 
         try:
             msg = 'RELS:' + license + ticket
-            print("msg :" + msg)
+            print("msg : " + msg)
             sock.sendto(msg.encode(), ServerIP_Port)
-            info = sock.recv(MSGLEN).decode()
+            sock.settimeout(5)
+            try:
+                info = sock.recv(MSGLEN).decode()
+            except OSError as e:
+                print('Timeout Error',e)
+                print('try again... (rest times: ' + str(relsTimes) + ')')
+                continue
             break
         except ConnectionError as Err:
             print('Connection Error', Err)

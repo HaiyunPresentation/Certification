@@ -13,6 +13,15 @@ def usage():
     print('  -r, --run')
     print('\'python3\' is recommended in Linux')
 
+def exceptionProcess():
+    try:
+        stopThread(checkAliveThread)
+    except ValueError as e:
+        print(e)
+        sys.exit(-1)
+    except SystemError as e:
+        print(e)
+        sys.exit(-1)
 
 if __name__ == "__main__":
     if (len(sys.argv) != 2):
@@ -27,33 +36,52 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print('KeyboardInterrupt...')
             pass
-        exit(0)
+        except TimeoutError:
+            pass
+        sys.exit(0)
 
     err = ''
     if (Req == '-r' or Req=='--run'):
-        err = requestTicket()
+        try:
+            err = requestTicket()
+        except TimeoutError:
+            sys.exit(-1)
     else: # 指令错误
         usage()
         sys.exit(-1)
 
     if err != '':
         print('Could not get ticket: ', err)
-        exit(0)
+        sys.exit(0)
     try:
         checkAliveThread=CheckAliveThread()
         checkAliveThread.start()
         print('Now start working...')
         print('--------------------')
-        work()
+        while True:
+            str = ''
+            str = input()
+            print(str)
+            if str == 'exit':
+                break
+            if checkAliveThread.refused==True:
+                raise RefusedError
         print('--------------------')
         print('Done, now release the license...')
+    except TimeoutError:
+        exceptionProcess()
     except KeyboardInterrupt:
         print('KeyboardInterrupt...')
         pass
-        
+    except RefusedError as e:
+        print('Refused by the server...')
+        exceptionProcess()
+
+    exceptionProcess()
     if releaseTicket():
         print('Released ticket, now exit.')
     else:
         print('Cannot released ticket, now exit.')
-    stopThread(checkAliveThread)
-    exit(0)
+    sys.exit(0)
+
+

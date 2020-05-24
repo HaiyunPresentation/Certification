@@ -12,3 +12,6 @@ lenLicense = 10
 
 databaseName='info.db'
 # SQLite数据库名称
+
+class RefusedError(Exception):
+    pass
