@@ -60,4 +60,4 @@ pyinstaller client.py [-F]
 ```
 - 3. Put `client.exe`, `manage.exe`, `/static` and `/templates` under the same folder.
 
-**Because of some problem in PyInstaller, we don't guarantee that the web UI can work normallly in Firefox browser!!!**
+**Because of some problem in PyInstaller, we don't guarantee that the web UI can work normally in Firefox browser!!!**
