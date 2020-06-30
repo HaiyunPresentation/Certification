@@ -1,5 +1,5 @@
 # License
-*This is Project 3 of CNI course in Department of Software Engineering, School of Infomatics, Xiamen University.*  
+*This is Project 3 of CNI course in Department of Software Engineering, School of Informatics, Xiamen University.*  
 
 ## Dependencies 
 - Python 3
